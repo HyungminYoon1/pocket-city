@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="20턴 안에 작은 도시를 완성하는 타일 전략 게임. 인구, 전력, 환경을 균형 있게 관리하세요."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <title>POCKET CITY — 작은 땅, 큰 선택</title>
+    <link rel="icon" href="./favicon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./src/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./"><span>▦</span> POCKET CITY</a>
+      <div class="header-actions">
+        <button id="new-city">새 도시</button
+        ><button id="resume" hidden>진행 중 도시 계속</button
+        ><a href="https://github.com/HyungminYoon1/pocket-city">소스 코드</a>
+      </div>
+    </header>
+    <main>
+      <section class="city-title">
+        <div>
+          <p class="eyebrow">A LITTLE LAND. A LOT OF POSSIBILITIES.</p>
+          <h1>당신의 작은 도시.</h1>
+          <p>건물을 고르고 빈 땅을 누르세요. 20턴 동안 도시를 완성합니다.</p>
+        </div>
+        <div class="turn-badge">
+          <strong id="turn">01</strong><span>/ 20 TURN</span>
+        </div>
+      </section>
+      <div class="metrics">
+        <div>
+          <span>예산</span><strong id="budget">10</strong><small>COINS</small>
+        </div>
+        <div>
+          <span>인구</span><strong id="population">0</strong
+          ><small>PEOPLE</small>
+        </div>
+        <div>
+          <span>전력</span><strong id="power">0 / 0</strong
+          ><small>SUPPLY / NEED</small>
+        </div>
+        <div>
+          <span>환경</span><strong id="environment">0</strong
+          ><small>GREEN INDEX</small>
+        </div>
+        <div class="metric-score">
+          <span>도시 점수</span><strong id="score">0</strong
+          ><small>POINTS</small>
+        </div>
+      </div>
+      <div class="city-layout">
+        <section class="map-section">
+          <div class="map-head">
+            <span id="city-name">CITY PLAN / 01</span
+            ><span>5 × 5 DISTRICT</span>
+          </div>
+          <div class="map-frame">
+            <div
+              id="city"
+              class="city-grid"
+              role="group"
+              aria-label="도시 건물 배치판"
+            ></div>
+          </div>
+          <div class="map-legend">
+            <span>주택</span><span>상점</span><span>공원</span
+            ><span>발전소</span><span>도로</span>
+          </div>
+          <p id="status" role="status">
+            오른쪽 건물 카드 중 하나를 선택하세요.
+          </p>
+          <div id="endgame" class="endgame" hidden></div>
+        </section>
+        <aside class="planning">
+          <p class="eyebrow">THIS TURN'S BUILDINGS</p>
+          <h2>다음 선택은?</h2>
+          <div id="offers" class="offers"></div>
+          <div id="preview" class="preview">
+            건물을 선택하면 비용과 효과를 확인할 수 있습니다.
+          </div>
+          <button id="pass">건설 쉬기 · 예산 +2</button>
+          <div class="goals">
+            <h3>도시의 세 가지 목표</h3>
+            <p id="goal-pop">○ 인구 12명 이상</p>
+            <p id="goal-power">○ 전력 자립</p>
+            <p id="goal-green">○ 환경 지수 12 이상</p>
+          </div>
+          <details>
+            <summary>건물과 점수</summary>
+            <p>
+              주택은 공원·도로 옆에서, 상점은 주택 옆에서 추가 점수를 얻습니다.
+              발전소는 전력을 공급하지만 환경과 주변 주택에 영향을 줍니다. 강
+              옆의 공원은 환경 점수가 높습니다.
+            </p>
+            <p>
+              매 턴 기본 수입 2, 상점 수에 따라 최대 3의 추가 수입을 얻습니다.
+              전력 부족과 일자리 부족은 점수를 줄입니다.
+            </p>
+          </details>
+        </aside>
+      </div>
+      <section class="records">
+        <div>
+          <p class="eyebrow">YOUR CITIES, YOUR STORIES</p>
+          <h2>이 브라우저의 도시 기록</h2>
+          <p>전체 사용자 랭킹이 아닙니다. 기록은 서버로 전송하지 않습니다.</p>
+        </div>
+        <div id="history"></div>
+        <div class="code-panel">
+          <label for="seed">도시 코드</label>
+          <div class="seed-row">
+            <input id="seed" maxlength="40" /><button id="apply-seed">
+              같은 도시 시작
+            </button>
+          </div>
+          <button id="clear">내 기록 삭제</button>
+        </div>
+      </section>
+      <p id="notice" role="status"></p>
+    </main>
+    <footer>POCKET CITY / BUILD SMALL. THINK BIG.</footer>
+  </body>
+</html>
