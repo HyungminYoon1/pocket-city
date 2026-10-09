@@ -17,6 +17,27 @@ button,
 input {
   font: inherit;
 }
+select { font: inherit; color: inherit; background: white; border: 1px solid var(--line); border-radius: 8px; padding: 0.65rem; max-width: 100%; }
+select:focus-visible { outline: 3px solid #e69b12; outline-offset: 3px; }
+.mission { background: #fff; border: 1px solid var(--line); border-left: 5px solid var(--blue); border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; }
+.mission h2 { margin: 0.8rem 0; font-size: 1.5rem; }
+.mission p { line-height: 1.7; }
+.mission-select label { display: inline-block; margin-right: 0.8rem; font-weight: 700; }
+.mission-select p, .mission-note, .progress { font-size: 0.8rem; color: #516b85; }
+.timeline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
+.timeline p { margin: 0; border: 1px solid var(--line); border-radius: 8px; padding: 0.8rem; font-size: 0.8rem; background: #f5f8fc; }
+.timeline .done, .goals .done { color: #146046; }
+.critical, .timeline .critical { color: #9a3328; background: #fff1ed; }
+.city-health { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin-bottom: 1rem; font-size: 0.85rem; color: #425e78; }
+.city-health p { margin: 0; }
+.map-key, .forecast { line-height: 1.7; font-size: 0.8rem; color: #425e78; }
+.plot.disconnected { outline: 3px dashed #ad4537; outline-offset: -3px; }
+.plot-alert { position: absolute; top: 2px; right: 2px; background: #842d23; color: white; font-size: 0.65rem; border-radius: 3px; padding: 1px 3px; z-index: 1; }
+.plot.unserved .plot-alert { background: #6f5208; }
+.plot.clinic .building { border-color: #349990; color: #18766e; background: #e5fff5; }
+.map-legend span:nth-child(6)::before { background: #349990; }
+.forecast { padding: 0.6rem; background: #f0f5ff; border-radius: 8px; }
+.endgame button { margin-right: 0.5rem; }
 button {
   cursor: pointer;
   border: 1px solid var(--line);
@@ -473,8 +494,22 @@ summary {
 .endgame p {
   font-size: 0.875rem;
 }
-.endgame button {
+#endgame button {
   margin-top: 0.5rem;
+  color: #173575;
+  background: #ffffff;
+  border-color: #ffffff;
+}
+#endgame button:hover:not(:disabled) {
+  color: #173575;
+  background: #e5eeff;
+  border-color: #e5eeff;
+}
+#endgame button:focus-visible {
+  color: #173575;
+  background: #ffffff;
+  outline: 3px solid #ffdc73;
+  outline-offset: 4px;
 }
 footer {
   font-size: 0.75rem;
@@ -486,6 +521,7 @@ footer {
   display: none !important;
 }
 @media (max-width: 900px) {
+  .planning > .forecast, .planning > .goals, .planning > details { grid-column: 1/-1; }
   .city-layout {
     grid-template-columns: 1fr;
   }
@@ -535,6 +571,9 @@ footer {
   }
 }
 @media (max-width: 520px) {
+  .timeline { grid-template-columns: 1fr; }
+  .mission-select label { display: block; margin-bottom: 0.5rem; }
+  .mission-select select { width: 100%; }
   header {
     padding: 1rem;
     flex-wrap: wrap;
