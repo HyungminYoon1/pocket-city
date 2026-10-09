@@ -22,10 +22,18 @@ select:focus-visible { outline: 3px solid #e69b12; outline-offset: 3px; }
 .mission { background: #fff; border: 1px solid var(--line); border-left: 5px solid var(--blue); border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; }
 .mission h2 { margin: 0.8rem 0; font-size: 1.5rem; }
 .mission p { line-height: 1.7; }
+.mission .event-status { color: #24354a; font-size: 0.85rem; font-weight: 650; }
 .mission-select label { display: inline-block; margin-right: 0.8rem; font-weight: 700; }
 .mission-select p, .mission-note, .progress { font-size: 0.8rem; color: #516b85; }
 .timeline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
 .timeline p { margin: 0; border: 1px solid var(--line); border-radius: 8px; padding: 0.8rem; font-size: 0.8rem; background: #f5f8fc; }
+.timeline strong, .timeline span { display: block; }
+.timeline strong { margin-bottom: 0.3rem; }
+.mission-details .timeline { margin-top: 0.6rem; }
+.feedback { border-left: 3px solid var(--blue); padding-left: 0.7rem; font-size: 0.875rem; color: #24354a; }
+.feedback p { margin: 0.4rem 0; line-height: 1.6; }
+.achievements .done { color: #146046; font-weight: 650; }
+#endgame li { margin: 0.5rem 0; line-height: 1.5; font-size: 0.875rem; }
 .timeline .done, .goals .done { color: #146046; }
 .critical, .timeline .critical { color: #9a3328; background: #fff1ed; }
 .city-health { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin-bottom: 1rem; font-size: 0.85rem; color: #425e78; }
@@ -110,7 +118,7 @@ main {
   margin-bottom: 1.5rem;
 }
 .city-title h1 {
-  font-size: 2.8rem;
+  font-size: 2rem;
   letter-spacing: -1px;
   line-height: 1.2;
   margin: 0.5rem 0;
@@ -138,7 +146,7 @@ main {
 }
 .metrics {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
@@ -148,12 +156,12 @@ main {
 }
 .metrics > div {
   background: white;
-  padding: 1rem 1.4rem;
+  padding: 0.65rem 1rem;
 }
 .metrics span {
   display: block;
   font-size: 0.875rem;
-  color: #73869b;
+  color: #425e78;
 }
 .metrics strong {
   font-size: 1.8rem;
@@ -164,7 +172,7 @@ main {
 .metrics small {
   display: block;
   font-size: 0.75rem;
-  color: #8493a6;
+  color: #516b85;
 }
 .metrics .metric-score {
   background: #2354d0;
@@ -373,10 +381,12 @@ main {
 .offer small {
   display: block;
   font-size: 0.75rem;
-  color: #7c8da2;
+  color: #425e78;
   margin-top: 0.3rem;
 }
 .offer > span {
+  white-space: nowrap;
+  flex-shrink: 0;
   font-size: 1.1rem;
   font-weight: 750;
   color: var(--blue);
@@ -402,7 +412,7 @@ main {
 }
 .goals p {
   font-size: 0.8rem;
-  color: #6e8199;
+  color: #425e78;
 }
 .goals p.done {
   color: #197553;
@@ -439,7 +449,7 @@ summary {
 }
 .records p {
   font-size: 0.8rem;
-  color: #7a8ba1;
+  color: #425e78;
   line-height: 1.7;
 }
 .history-row {
@@ -451,7 +461,7 @@ summary {
   font-size: 0.875rem;
 }
 .history-row span {
-  color: #75889e;
+  color: #425e78;
   font-size: 0.75rem;
   overflow-wrap: anywhere;
 }
@@ -521,20 +531,26 @@ footer {
   display: none !important;
 }
 @media (max-width: 900px) {
-  .planning > .forecast, .planning > .goals, .planning > details { grid-column: 1/-1; }
   .city-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
   }
-  .planning {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-  .planning > .eyebrow,
-  .planning > h2 {
-    grid-column: 1/-1;
-    margin: 0;
-  }
+  .map-section, .planning { display: contents; }
+  .planning > h2 { order: 0; margin: 0; font-size: 1rem; }
+  .offers { order: 1; }
+  .map-head { order: 2; }
+  .map-frame { order: 3; }
+  .preview { order: 4; min-height: 0; padding: 0; }
+  .planning #pass { order: 5; }
+  #status { order: 6; margin: 0; }
+  #endgame { order: 7; }
+  .feedback { order: 8; }
+  .goals { order: 9; }
+  .forecast { order: 10; }
+  .map-legend { order: 11; padding: 0.4rem; }
+  .map-key { order: 12; margin: 0; }
+  .planning > details { order: 13; }
   .offers {
     grid-column: 1/-1;
     grid-template-columns: repeat(3, 1fr);
@@ -543,6 +559,7 @@ footer {
     padding: 0.7rem;
     display: block;
   }
+  .offer small { display: none; }
   .offer > span {
     display: block;
     margin-top: 0.4rem;
@@ -575,7 +592,7 @@ footer {
   .mission-select label { display: block; margin-bottom: 0.5rem; }
   .mission-select select { width: 100%; }
   header {
-    padding: 1rem;
+    padding: 0.6rem;
     flex-wrap: wrap;
   }
   .brand {
@@ -585,13 +602,13 @@ footer {
     display: none;
   }
   main {
-    padding: 1rem;
+    padding: 0.65rem;
   }
   .city-title h1 {
-    font-size: 2rem;
+    font-size: 1.4rem;
   }
   .city-title {
-    margin: 0.6rem 0 1.1rem;
+    margin: 0.4rem 0 0.6rem;
   }
   .city-title .eyebrow {
     display: none;
@@ -600,38 +617,32 @@ footer {
     font-size: 0.8rem;
   }
   .turn-badge strong {
-    font-size: 2.5rem;
+    font-size: 1.8rem;
   }
   .turn-badge span {
     font-size: 0.75rem;
   }
   .metrics {
-    grid-template-columns: repeat(3, 1fr);
-    margin-bottom: 1rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 0.6rem;
   }
   .metrics > div {
-    padding: 0.6rem 0.75rem;
+    padding: 0.4rem;
   }
   .metrics strong {
-    font-size: 1.3rem;
+    font-size: 1.05rem;
   }
   .metrics span {
     font-size: 0.8rem;
   }
   .metrics small {
-    font-size: 0.75rem;
-  }
-  .metrics > div:nth-child(4) {
-    grid-column: 1/2;
-  }
-  .metrics > .metric-score {
-    grid-column: 2/4;
+    font-size: 0.7rem;
   }
   .city-layout {
-    gap: 1rem;
+    gap: 0.5rem;
   }
   .map-frame {
-    padding: 1rem 0.75rem 1.3rem;
+    padding: 0.6rem 0.5rem 0.8rem;
   }
   .city-grid {
     gap: 6px;
@@ -659,15 +670,20 @@ footer {
     gap: 0.8rem;
     font-size: 0.75rem;
   }
-  .planning {
-    padding: 1rem;
-    gap: 0.7rem;
-  }
+  .mission { padding: 0.6rem; margin-bottom: 0.5rem; }
+  .mission h2 { font-size: 1rem; margin: 0.5rem 0; }
+  .mission p { margin: 0.4rem 0; font-size: 0.8rem; }
+  .mission-select label { margin-bottom: 0.3rem; font-size: 0.8rem; }
+  .mission-details { margin-top: 0.4rem; }
+  .city-health { font-size: 0.75rem; gap: 0.3rem; margin-bottom: 0.5rem; }
+  .header-actions { flex-wrap: wrap; gap: 0.4rem; }
+  .header-actions button { min-height: 44px; }
   .offers {
     gap: 0.4rem;
   }
   .offer {
     padding: 0.5rem;
+    min-height: 60px;
   }
   .offer strong {
     font-size: 0.875rem;
@@ -690,6 +706,7 @@ footer {
   .records h2 {
     font-size: 1.1rem;
   }
+  .history-row strong { white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) {
   * {

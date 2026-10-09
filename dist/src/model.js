@@ -12,21 +12,21 @@ export const BUILDINGS = {
 };
 export const SCENARIOS = {
   foundations: {
-    name: "1 · 연결되는 동네", subtitle: "도로·전력·일자리를 연결하며 주민 9명을 정착시키세요.",
+    name: "1 · 연결되는 동네", subtitle: "인구 9명 · 생활 서비스 6명 · 신뢰 35 이상",
     population: 9, green: 0, served: 6, reserve: 2, trust: 35,
-    event: { turn: 11, name: "정착 지원 종료", desc: "11턴부터 기본 수입 3 → 2. 상점 가동이 중요해집니다." },
+    event: { turn: 11, name: "정착 지원 종료", desc: "기본 수입 3 → 2" },
     checkpoints: [{ turn: 8, population: 3, name: "첫 정착", hint: "인구 3 · 단절 0 · 전력 부족 0" }, { turn: 14, population: 6, name: "생활권 형성", hint: "인구 6 · 단절 0 · 전력 부족 0" }],
   },
   garden: {
-    name: "2 · 폭염 속 정원 도시", subtitle: "발전소의 환경 비용과 공원·진료소의 생활 서비스를 함께 관리하세요.",
+    name: "2 · 폭염 속 정원 도시", subtitle: "인구·생활 서비스 9명 · 환경 6 · 신뢰 45 이상",
     population: 9, green: 6, served: 9, reserve: 3, trust: 45,
-    event: { turn: 11, name: "폭염", desc: "11턴부터 주거 도시의 전력 수요 +2. 미리 발전 용량을 확보하세요." },
+    event: { turn: 11, name: "폭염", desc: "주택이 있으면 전력 수요 +2" },
     checkpoints: [{ turn: 8, population: 3, name: "첫 정착", hint: "인구 3 · 단절 0 · 전력 부족 0" }, { turn: 14, population: 6, green: 0, name: "폭염 대응", hint: "인구 6 · 단절 0 · 전력 부족 0 · 환경 0 이상" }],
   },
   transit: {
-    name: "3 · 출근길의 약속", subtitle: "인구 12명의 도시. 넓은 도로망과 생활권을 위한 땅을 남겨 두세요.",
+    name: "3 · 출근길의 약속", subtitle: "인구 12명 · 생활 서비스 9명 · 신뢰 50 이상",
     population: 12, green: 0, served: 9, reserve: 4, trust: 50,
-    event: { turn: 11, name: "광역 통근 개시", desc: "11턴부터 통행 수요 +6. 연결 도로 2개 분량의 여유가 필요합니다." },
+    event: { turn: 11, name: "광역 통근 개시", desc: "주택이 있으면 통행 수요 +6" },
     checkpoints: [{ turn: 8, population: 3, name: "첫 정착", hint: "인구 3 · 단절 0 · 전력 부족 0" }, { turn: 14, population: 9, traffic: 0, name: "통근 점검", hint: "인구 9 · 단절 0 · 전력 부족 0 · 혼잡 0" }],
   },
 };
@@ -106,6 +106,19 @@ export function goals(state) {
     { label: `환경 ${s.green} 이상`, value: m.environment, target: s.green, met: m.environment >= s.green },
     { label: `예산 ${s.reserve} · 신뢰 ${s.trust} 이상`, value: `${state.budget} / ${state.trust}`, target: `${s.reserve} / ${s.trust}`, met: state.budget >= s.reserve && state.trust >= s.trust },
   ];
+}
+export function scenarioFeedback(state) {
+  const m = evaluateCity(state), s = SCENARIOS[state.scenario], feedback = [];
+  if (m.isolated) feedback.push(`단절 ${m.isolated}곳: 중앙 도로망에 연결`);
+  if (m.shortage) feedback.push(`전력 ${m.shortage} 부족: 연결 발전소 확보`);
+  if (m.unemployment) feedback.push(`실업 ${m.unemployment}명: 연결 주택·상점 확보`);
+  if (m.traffic) feedback.push(`통행 용량 ${m.traffic} 부족: 연결 도로 확장`);
+  if (m.population < s.population) feedback.push(`인구 ${s.population - m.population}명 부족: 주택 확보`);
+  if (m.served < s.served) feedback.push(`생활 서비스 ${s.served - m.served}명 부족: 공원·가동 진료소 확보`);
+  if (m.environment < s.green) feedback.push(`환경 ${s.green - m.environment} 부족: 공원 확보`);
+  if (state.budget < s.reserve) feedback.push(`예산 ${s.reserve - state.budget} 부족: 수입·유지비 확인`);
+  if (state.trust < s.trust) feedback.push(`신뢰 ${s.trust - state.trust} 부족: 단절·정전·생활 부담 해소`);
+  return feedback;
 }
 function settle(state, board, cost, action) {
   const next = { ...state, board, turn: state.turn + 1, actions: [...state.actions, action], checkpoints: [...state.checkpoints] };

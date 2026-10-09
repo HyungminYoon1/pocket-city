@@ -1,5 +1,40 @@
 # 검증 기록
 
+## 2026-10-09 — 독립 캠페인 업적·갤러리 요약·모바일 정리
+
+### LOCAL — PASS (이번 작업자)
+
+- Node.js v22.23.2 / npm 11.12.0. `npm test`: 34개 통과(모델 13, 캠페인/개인 storage 7, 공유 요약 4, 실제 앱 콜백 DOM 대역·대비 10). 기존 17개 시험을 유지하고, 세 승리의 기존 점수/예산/신뢰를 명시적으로 고정했습니다. 기존 승리 행동은 그대로 `test/fixtures/victories.json`으로 옮겼습니다.
+- 실제 합법 `lesson` 승리 후 12개 미달 기록을 추가해 최근 10개에서 승리 메타데이터가 없어져도 업적과 다음 추천이 남는지 확인했습니다. 세 임무의 독립 승리와 중복 승리, 최근 10개·최대 업적 3개·19행동 진행 판의 저장/재로딩과 보존량 상한도 확인했습니다.
+- `garden`의 실제 11턴 행동 저장·로딩·재생 전체 상태 일치. v1, 행동 없는 v2 성공 메타데이터, 실패를 성공으로 표기한 판, 미완료·초과/불법 행동·다른 임무 증거로는 업적을 얻지 못합니다. 저장한 점수/보드가 아닌 재생 결과를 사용합니다.
+- 공유 요약은 15개 허용 ID와 정수·ISO 날짜·정확한 필드·8,192자 상한을 검사합니다. 다른 14개 앱 항목 보존, own 삭제, 잘못된 날짜·unknown/prototype ID·개인 필드·깨진/과도한 JSON 거부, storage getter/read/write 실패를 확인했습니다. 개인 저장 성공 없이 요약을 게시하지 않습니다.
+- 실제 app.js 콜백을 Node vm과 DOM/storage 대역에서 실행하여 초기 보기·미리보기·재로딩·실패에는 요약을 쓰지 않는 것, 성공 후 완료 수 반영, 12회 실패 후 독립 업적 유지, 실제 이어하기·초기화와 다른 앱 데이터 보존, 저장/삭제 실패 안내를 확인했습니다. 브라우저·실제 localStorage·레이아웃 시험은 아닙니다.
+- 실제 목표 부족량·해결 시설의 피드백과 기존 모델 입력 불변을 확인했습니다. 세 합법 승리의 점수/예산/신뢰: 동네 330/62/100, 정원 326/51/100, 통근 310/34/98. 규칙 v2·목표·경제·카드·승리 해법은 유지합니다.
+- `npm run check`: JS 문법과 정적 자산/메타데이터 PASS. 최종 `git diff --check`, 변경 텍스트 16개 UTF-8 BOM 없음·CRLF, app.js의 HTML id 참조 36개 존재·중복 없음 PASS. CSP의 `connect-src 'none'`를 유지합니다.
+
+### BROWSER / REMOTE_CI / LIVE — NOT_RUN (이번 변경)
+
+- 이번 작업자는 브라우저, 실제 모바일 렌더링, 원격 CI, 공개 배포를 실행하거나 확인하지 않았습니다. 아래 과거 검증은 이번 변경의 공개 반영 증거가 아닙니다.
+- 커밋·푸시·프로비저닝·계정 접근·랭킹·다른 저장소 수정·다른 에이전트 생성 없음. 이번 변경은 로컬 작업 트리에 있습니다.
+
+### 메인 담당자 브라우저 조작·캡처 인계
+
+1. 저장소에서 `npm run dev -- 0` 실행 후 표시된 loopback URL을 엽니다. 공유 요약과 갤러리 연동은 **같은 origin**에서 검증해야 합니다. 서로 다른 포트/호스트에는 localStorage가 공유되지 않습니다.
+2. 임무 `2 · 폭염 속 정원 도시` 선택 → 하단 도시 코드 `lesson` 입력 → ‘같은 도시 시작’. 초기 화면에서 11턴 폭염/전력 수요 +2가 접힌 상세 일정과 별도로 보이는지 확인합니다. 초기 보기와 빈 칸 미리보기만으로 aggregate가 생성되지 않아야 합니다.
+3. `test/fixtures/victories.json`의 `garden` 배열 순서대로 UI를 조작합니다. 각 `[index,offer]`는 **0부터 시작**한 지도 칸과 카드 번호입니다. 지도 행은 `floor(index/5)+1`, 열은 `index%5+1`; 카드 offer 0/1/2는 화면의 첫째/둘째/셋째 버튼입니다. null은 ‘건설 쉬기’입니다. 매 턴 카드를 클릭한 뒤 해당 빈 땅을 클릭합니다. 상태·예산·점수를 직접 설정하지 않습니다.
+4. 11개 행동 후 실제 도시 화면을 캡처합니다. 적용 중 폭염, 실제 건물/서비스 배지, 선택 카드·배치판·미리보기·정산 표시를 포함합니다. 새로고침 → ‘진행 중 도시 계속’으로 같은 보드·턴·예산·신뢰를 확인합니다. 나머지 9개 행동 후 정원 임무 성공 326점/예산 51/신뢰 100과 내 기기 캠페인 1/3을 캡처합니다. 요약에는 completed 1/total 3/실제 ISO 시각만 있어야 합니다.
+5. 320×720, 390×844와 데스크톱에서 확인합니다. 모바일 건물 카드 → 지도 → 미리보기·휴식의 근접 배치, 선택 카드 효과를 보여주는 미리보기, 가로 넘침, 카드/칸의 터치 영역, 실제 스크롤·포커스를 확인합니다. 점검 상세를 열면 조건과 통과/미달 결과가 줄로 나뉘어야 합니다.
+6. 새 도시에서 ‘건설 쉬기’를 20회 누르면 최종 미달입니다. 미달 목표의 실제 부족량과 재도전 버튼을 캡처합니다. 이 미달 판을 12회 완료해 최근 완료 10개에서 최초 승리가 밀려도 정원 업적·캠페인 1/3이 남고 aggregate 시각은 실패로 갱신되지 않는지 확인합니다.
+7. 갤러리/다른 앱에 실제 완료 요약이 있는 테스트 프로필에서 ‘내 기록 초기화’ 확인 후 pocket-city 개인 키와 own aggregate 항목만 지워지는지 확인합니다. 다른 앱의 summary/private key는 보존되어야 합니다. v1 기록·storage 차단·저장/초기화 부분 실패도 별도 테스트 프로필에서 확인합니다.
+8. 기존 포커스/스크롤 race 회귀: 카드 클릭 → 빈 칸 포커스 → pointerleave 후 미리보기 유지. 완료 버튼 기본/hover/focus 대비와 재도전·다음 임무 클릭도 재확인합니다. 공개 배포 후 검증은 메인이 별도로 기록합니다.
+
+### 변경 경로와 소스 검사 범위
+
+- 수정: `architecture.md`, `README.md`, `docs/decisions.md`, `docs/verification.md`, `dist/index.html`, `dist/styles.css`, `dist/src/app.js`, `dist/src/model.js`, `test/model.test.js`, `test/ui.test.js`.
+- 추가: `dist/src/campaign.js`, `dist/src/storage.js`, `dist/src/progress.js`, `test/campaign.test.js`, `test/progress.test.js`, `test/fixtures/victories.json`.
+- VERIFIED (전체 읽기): architecture.md → README.md → docs/decisions.md; api-spec.md와 requirements.md는 없음. .gitattributes, package.json, 기존 관련 dist/src/ 3개·index.html·styles.css, test/ 2개, docs/verification.md, tools/check.mjs·serve.mjs, .github/workflows/pages.yml을 읽었습니다. 새 파일 6개를 작성·검사했으며 새 런타임 모듈 3개는 최종 전체 읽기로 재확인했습니다.
+- 명시한 pocket-city 저장소: PARTIAL. 파일을 inventory한 뒤 위 관련 소스를 선택했습니다. tools/balance.mjs, favicon.svg, .git 내부와 node_modules는 이번 기능/저장 경계에 변경이 없어 전체 검토에서 제외했습니다. 최초 git status는 깨끗했습니다. 형제 디렉터리 이름만 15개 whitelist 확인에 사용했으며 형제 저장소 내용은 NOT_INSPECTED/NOT_MODIFIED입니다.
+
 ## 2026-10-09 — 키보드 미리보기·완료 버튼 QA 후속
 
 ### LOCAL — PASS (이번 작업자)

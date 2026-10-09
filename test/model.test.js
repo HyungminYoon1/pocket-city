@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BUILDINGS, RULE_VERSION, SCENARIOS, MAX_TURNS, createCity, offers, place, pass, replay, evaluateCity, goals, neighbors } from "../dist/src/model.js";
+import { readFileSync } from "node:fs";
+import { BUILDINGS, RULE_VERSION, SCENARIOS, MAX_TURNS, createCity, offers, place, pass, replay, evaluateCity, goals, scenarioFeedback, neighbors } from "../dist/src/model.js";
 
 function fixture(scenario = "foundations", cells = {}) {
   const s = createCity("unit", scenario);
@@ -164,11 +165,7 @@ test("grace period, unpaid maintenance, trust collapse and empty-city final defe
 
 // Legal victory witnesses from the bounded local balance probe.
 // Each pair is [plot index, offer index]; null is a turn of rest.
-const victories = {
-  foundations: [[7,0],[6,2],[2,2],[3,2],[11,2],[8,1],[13,2],[17,0],[19,2],[22,2],[18,1],[16,0],[15,0],[0,2],[10,1],null,[4,1],null,[9,2],[20,0]],
-  garden: [[13,0],[7,2],[14,2],[19,2],[8,2],[18,1],[17,2],[11,0],[15,2],[6,2],[10,1],[0,1],[16,0],[21,0],[20,1],[22,0],[2,1],null,[3,2],[23,0]],
-  transit: [[7,0],[6,2],[2,2],[3,2],[11,2],[8,1],[13,2],[17,0],[16,0],[22,1],[18,0],[20,1],[15,2],[19,0],[14,2],[21,1],null,null,[0,2],[23,0]],
-};
+const victories = JSON.parse(readFileSync(new URL("./fixtures/victories.json", import.meta.url), "utf8"));
 for (const [scenario, plan] of Object.entries(victories)) test(scenario + ": a legal 20-turn victory is attainable, immutable and exactly replayable", () => {
   let s = createCity("lesson", scenario);
   for (const move of plan) {
@@ -180,6 +177,26 @@ for (const [scenario, plan] of Object.entries(victories)) test(scenario + ": a l
   assert.equal(s.turn, 20);
   assert.equal(s.outcome, "won");
   assert.equal(s.version, RULE_VERSION);
+  const expected = { foundations: [330, 62, 100], garden: [326, 51, 100], transit: [310, 34, 98] }[scenario];
+  assert.deepEqual([evaluateCity(s).score, s.budget, s.trust], expected);
   assert.ok(goals(s).every(g => g.met));
+  assert.deepEqual(scenarioFeedback(s), []);
   assert.deepEqual(replay("lesson", s.actions, scenario, RULE_VERSION), s);
+});
+
+test("scenario feedback reports actual deficits and fixes without mutating rules or state", () => {
+  const s = fixture("garden", { 7: "home", 0: "plant" });
+  s.turn = 11; s.trust = 40; s.budget = 1;
+  const before = structuredClone(s), feedback = scenarioFeedback(s);
+  assert.ok(feedback.includes("단절 1곳: 중앙 도로망에 연결"));
+  assert.ok(feedback.includes("전력 4 부족: 연결 발전소 확보"));
+  assert.ok(feedback.includes("인구 6명 부족: 주택 확보"));
+  assert.ok(feedback.includes("생활 서비스 9명 부족: 공원·가동 진료소 확보"));
+  assert.ok(feedback.includes("환경 9 부족: 공원 확보"));
+  assert.ok(feedback.includes("예산 2 부족: 수입·유지비 확인"));
+  assert.ok(feedback.includes("신뢰 5 부족: 단절·정전·생활 부담 해소"));
+  assert.deepEqual(s, before);
+  const transit = fixture("transit", { 7: "home", 11: "home" });
+  transit.turn = 11;
+  assert.ok(scenarioFeedback(transit).includes("통행 용량 9 부족: 연결 도로 확장"));
 });

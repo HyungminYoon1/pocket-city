@@ -1,20 +1,15 @@
-import { $, freshSeed, cleanSeed, loadLocal, saveLocal, announce, tool } from "./core.js";
-import { BUILDINGS, MAX_TURNS, RULE_VERSION, SCENARIOS, createCity, offers, evaluateCity, goals, place, pass, replay } from "./model.js";
-const KEY = "pocket-city-v1";
-const saved = loadLocal(KEY, {});
-let record = {
-  history: Array.isArray(saved?.history) ? saved.history.filter(h => h && typeof h.seed === "string" && /^[A-Za-z0-9-]{1,40}$/.test(h.seed) && Number.isFinite(h.score) && h.score >= 0 && h.score <= 1000000 && typeof h.date === "string").slice(-10) : [],
-  current: saved?.current || null,
-};
-let state, selected = 0, resumeState = null;
+import { $, freshSeed, cleanSeed, announce, tool } from "./core.js";
+import { BUILDINGS, MAX_TURNS, RULE_VERSION, SCENARIOS, createCity, offers, evaluateCity, goals, scenarioFeedback, place, pass, replay } from "./model.js";
+import { emptyRecord, completedCount, recommendedScenario, recordTurn } from "./campaign.js";
+import { loadRecord, saveRecord, clearRecord } from "./storage.js";
+import { reportCompletion, clearProgress } from "./progress.js";
 let storageMessage = "";
+let record = loadRecord(undefined, message => { storageMessage = message; });
+let state, selected = 0, resumeState = null;
 try {
   if (record.current) {
-    if (record.current.version !== RULE_VERSION) storageMessage = "규칙이 v2로 바뀌어 이전 진행 판은 이어갈 수 없습니다. 이전 완료 점수는 v1로 표시합니다.";
-    else {
-      resumeState = replay(cleanSeed(record.current.seed), record.current.actions, record.current.scenario, record.current.version);
-      if (resumeState.outcome !== "playing") resumeState = null;
-    }
+    resumeState = replay(record.current.seed, record.current.actions, record.current.scenario, record.current.version);
+    if (resumeState.outcome !== "playing") resumeState = null;
   }
 } catch { storageMessage = "저장된 진행을 재현할 수 없습니다. 새 도시를 시작하세요."; }
 $("resume").hidden = !resumeState;
@@ -25,13 +20,15 @@ for (const [id, s] of Object.entries(SCENARIOS)) {
   $("scenario").append(option);
 }
 function save() {
-  if (!saveLocal(KEY, record)) announce("이 브라우저에 도시 기록을 저장할 수 없습니다.");
+  const saved = saveRecord(record);
+  if (!saved) announce("도시 기록을 저장할 수 없습니다. 이번 진행은 새로고침하면 사라집니다.");
+  return saved;
 }
 function start(seed = freshSeed(), scenario = $("scenario").value) {
   state = createCity(cleanSeed(seed), scenario);
   selected = 0;
   $("scenario").value = scenario;
-  $("status").textContent = "중앙 도로에서 생활권을 확장하세요. 4턴까지 신뢰 보호, 6턴까지 서비스·환경 부담 유예.";
+  $("status").textContent = "건물 선택 → 빈 땅 건설. 4턴까지 부담 0 · 6턴까지 서비스·환경 부담 유예.";
   announce("");
   render();
 }
@@ -39,7 +36,7 @@ function records() {
   $("history").replaceChildren();
   if (!record.history.length) {
     const p = document.createElement("p");
-    p.textContent = "완료한 도시 최대 10개를 보관합니다. 시나리오와 규칙 버전별로 비교하세요.";
+    p.textContent = "완료 기록 없음";
     $("history").append(p);
   }
   for (const h of [...record.history].reverse()) {
@@ -47,14 +44,19 @@ function records() {
     row.className = "history-row";
     const modern = h.version === RULE_VERSION && Object.hasOwn(SCENARIOS, h.scenario);
     a.textContent = (modern ? SCENARIOS[h.scenario].name + (h.outcome === "won" ? " · 성공" : " · 미달") : "이전 규칙 v1") + " · " + h.seed + " · " + h.date.slice(0, 10);
-    b.textContent = h.score + " PT";
+    b.textContent = h.score + "점";
     row.append(a, b);
     $("history").append(row);
   }
-  $("progress").textContent = "최근 10개 완료 기록의 성공: " + Object.entries(SCENARIOS).map(([id, s]) => {
-    const won = record.history.some(h => h.version === RULE_VERSION && h.scenario === id && h.outcome === "won");
-    return (won ? "✓ " : "○ ") + s.name;
-  }).join(" → ");
+  const count = completedCount(record), nextId = recommendedScenario(record);
+  $("record-summary").textContent = "캠페인 " + count + "/3 · 최근 완료 " + record.history.length + "/10 · 저장된 진행 " + (record.current ? "있음" : "없음");
+  $("progress").textContent = nextId ? "다음 추천: " + SCENARIOS[nextId].name : "세 임무 완료";
+  $("achievements").replaceChildren(...Object.entries(SCENARIOS).map(([id, s]) => {
+    const p = document.createElement("p"), won = Object.hasOwn(record.achievements, id);
+    p.className = won ? "done" : "";
+    p.textContent = (won ? "✓ 완료 · " : "○ 미완료 · ") + s.name;
+    return p;
+  }));
 }
 function showMetrics(m) {
   $("budget").textContent = state.budget;
@@ -81,15 +83,18 @@ function render() {
   showMetrics(m);
   $("turn").textContent = String(Math.min(MAX_TURNS, state.turn + (done ? 0 : 1))).padStart(2, "0");
   $("seed").value = state.seed;
-  $("city-name").textContent = "CITY / " + state.seed.slice(0, 18).toUpperCase();
+  $("city-name").textContent = "도시 " + state.seed.slice(0, 18);
   $("mission-title").textContent = scenario.name;
   $("mission-copy").textContent = scenario.subtitle;
-  $("active-scenario").textContent = "현재 진행: " + scenario.name + " · 선택 변경은 새 도시 시작에 적용";
+  $("event-status").textContent = (state.turn >= scenario.event.turn ? "적용 중" : scenario.event.turn + "턴") + " · " + scenario.event.name + ": " + scenario.event.desc;
+  $("active-scenario").textContent = "선택 변경은 새 도시에 적용";
   $("timeline").replaceChildren();
   for (const entry of [...scenario.checkpoints, scenario.event].sort((a, b) => a.turn - b.turn)) {
-    const p = document.createElement("p"), result = state.checkpoints.find(c => c.turn === entry.turn);
+    const p = document.createElement("p"), title = document.createElement("strong"), detail = document.createElement("span"), result = state.checkpoints.find(c => c.turn === entry.turn);
     p.className = result ? result.met ? "done" : "critical" : state.turn >= entry.turn ? "done" : "";
-    p.textContent = entry.turn + "턴 · " + entry.name + " — " + (entry.hint || entry.desc) + (result ? result.met ? " · 통과 +4 예산" : " · 미달 −12 신뢰" : "");
+    title.textContent = entry.turn + "턴 · " + entry.name + (result ? result.met ? " · 통과" : " · 미달" : state.turn >= entry.turn ? " · 적용 중" : "");
+    detail.textContent = (entry.hint || entry.desc) + (result ? result.met ? " · 예산 +4" : " · 신뢰 −12" : "");
+    p.append(title, detail);
     $("timeline").append(p);
   }
   $("city").replaceChildren();
@@ -133,12 +138,17 @@ function render() {
     button.setAttribute("aria-pressed", String(selected === i));
     const left = document.createElement("div"), n = document.createElement("strong"), desc = document.createElement("small"), cost = document.createElement("span");
     n.textContent = data.name; desc.textContent = data.desc; left.append(n, desc);
-    cost.textContent = data.cost + " COINS"; button.append(left, cost);
+    cost.textContent = "비용 " + data.cost; button.append(left, cost);
     button.onclick = () => { selected = i; render(); $("offers").children[i].focus(); };
     return button;
   }));
   $("forecast").textContent = [1, 2, 3].filter(n => state.turn + n < MAX_TURNS).map(n => "다음 " + n + "턴: " + offers({ ...state, turn: state.turn + n }).map(t => BUILDINGS[t].name).join(" / ")).join(" · ");
   $("pass").disabled = done;
+  const feedback = scenarioFeedback(state);
+  $("feedback").replaceChildren(...feedback.slice(0, 3).map(text => {
+    const p = document.createElement("p"); p.textContent = text; return p;
+  }));
+  if (!feedback.length) $("feedback").textContent = state.outcome === "won" ? "최종 목표 달성" : done ? "신뢰 0 · 계획 중단" : "현재 목표 충족 · 20턴까지 유지";
   if (!done) {
     const next = pass(state);
     $("pass").textContent = "건설 쉬기 · 예산 " + signed(next.budget - state.budget) + " · 신뢰 " + signed(next.trust - state.trust);
@@ -176,11 +186,17 @@ function preview(index) {
 function showResult() {
   $("endgame").replaceChildren();
   const h = document.createElement("h2"), p = document.createElement("p"), retry = document.createElement("button");
-  h.textContent = (state.outcome === "won" ? "임무 성공" : "계획 재검토") + " · " + evaluateCity(state).score + " PT";
-  p.textContent = state.reason + " " + (goals(state).filter(g => !g.met).map(g => g.label).join(" · ") || "다음 시나리오에서도 균형을 지켜보세요.");
-  retry.textContent = "같은 조건으로 다시 도전";
+  h.textContent = (state.outcome === "won" ? "임무 성공" : "임무 미달") + " · " + evaluateCity(state).score + "점";
+  p.textContent = state.reason;
+  retry.textContent = "같은 조건 재도전";
   retry.onclick = () => newGame(state.seed, state.scenario);
   $("endgame").append(h, p, retry);
+  const gaps = scenarioFeedback(state);
+  if (gaps.length) {
+    const list = document.createElement("ul");
+    for (const text of gaps) { const item = document.createElement("li"); item.textContent = text; list.append(item); }
+    $("endgame").append(list);
+  }
   if (state.outcome === "won") {
     const ids = Object.keys(SCENARIOS), nextId = ids[ids.indexOf(state.scenario) + 1];
     if (nextId) {
@@ -191,15 +207,14 @@ function showResult() {
 }
 function update(next) {
   state = next;
+  record = recordTurn(record, state, new Date().toISOString());
   if (state.outcome !== "playing") {
-    record.history.push({ version: RULE_VERSION, scenario: state.scenario, outcome: state.outcome, seed: state.seed, score: evaluateCity(state).score, date: new Date().toISOString() });
-    record.history = record.history.slice(-10); record.current = null; resumeState = null;
+    resumeState = null;
   } else {
-    record.current = { version: RULE_VERSION, scenario: state.scenario, seed: state.seed, actions: state.actions };
     resumeState = state;
   }
   $("resume").hidden = true;
-  save();
+  if (save() && state.outcome === "won" && !reportCompletion(completedCount(record))) announce("도시 기록은 저장했지만 갤러리 완료 표시를 저장할 수 없습니다.");
   const choices = offers(state);
   selected = Math.max(0, choices.findIndex(type => BUILDINGS[type].cost <= state.budget));
   const last = state.lastTurn;
@@ -213,19 +228,22 @@ function build(index) {
 $("pass").onclick = () => { if (state.outcome === "playing") update(pass(state)); };
 function newGame(seed, scenario = $("scenario").value) {
   if (state && state.turn > 0 && state.outcome === "playing" && !confirm("진행 중인 도시 대신 새 도시를 시작할까요?")) return;
-  record.current = null; resumeState = null; $("resume").hidden = true; save(); start(seed, scenario);
+  record.current = null; resumeState = null; $("resume").hidden = true; start(seed, scenario); save();
 }
 $("new-city").onclick = () => newGame(freshSeed());
 $("apply-seed").onclick = () => { try { newGame(cleanSeed($("seed").value)); } catch (e) { announce(e.message); } };
 $("resume").onclick = () => {
   if (resumeState) {
     state = resumeState; selected = 0; $("scenario").value = state.scenario; $("resume").hidden = true; render();
-    $("status").textContent = "행동 기록을 현재 규칙으로 재생해 도시를 이어갑니다.";
+    $("status").textContent = "저장된 도시를 이어갑니다.";
   }
 };
 $("clear").onclick = () => {
-  if (confirm("이 브라우저의 도시 기록과 저장된 진행을 삭제할까요?")) {
-    record = { history: [], current: null }; resumeState = null; $("resume").hidden = true; save(); start(); announce("내 도시 기록을 삭제했습니다.");
+  if (confirm("캠페인 업적, 최근 완료 기록, 저장된 진행을 삭제할까요?")) {
+    if (!clearRecord()) { announce("도시 기록을 삭제할 수 없습니다."); return; }
+    const summaryCleared = clearProgress();
+    record = emptyRecord(); resumeState = null; $("resume").hidden = true; start();
+    announce(summaryCleared ? "도시 기록을 삭제했습니다." : "도시 기록은 삭제했지만 갤러리 완료 표시를 삭제할 수 없습니다.");
   }
 };
 tool("start_city", "새 도시 시작 · 진행 중 판 초기화", {
@@ -233,7 +251,7 @@ tool("start_city", "새 도시 시작 · 진행 중 판 초기화", {
 }, input => {
   const seed = cleanSeed(input?.seed), scenario = input?.scenario ?? "foundations";
   if (!Object.hasOwn(SCENARIOS, scenario)) throw Error("Invalid scenario");
-  record.current = null; resumeState = null; $("resume").hidden = true; save(); start(seed, scenario);
+  record.current = null; resumeState = null; $("resume").hidden = true; start(seed, scenario); save();
   return { seed: state.seed, scenario: state.scenario, version: RULE_VERSION, turn: state.turn, budget: state.budget };
 });
 start();
