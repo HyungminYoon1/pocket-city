@@ -6,6 +6,11 @@ import { reportCompletion, clearProgress } from "./progress.js";
 let storageMessage = "";
 let record = loadRecord(undefined, message => { storageMessage = message; });
 let state, selected = 0, resumeState = null;
+const planningChallenges = {
+  foundations: "확장 순서를 비교하세요. 같은 코드로 주택을 먼저 짓는 계획과 도로·발전소·상점을 먼저 확보하는 계획을 각각 실행하고, 8턴 점검의 신뢰·수입·단절을 기록하세요. 4턴 부담 유예가 끝난 뒤에도 버틸 수 있는 이유를 설명해 보세요.",
+  garden: "10턴에 폭염 대비 여유 전력을 계산하세요. 주택 3채의 수요 6에 폭염 2와 상점·진료소 수요를 더해야 합니다. 공원과 진료소 중 어느 쪽으로 9명을 지원할지 정하고, 전력·유지비·발전소 옆 주택의 오염 노출을 함께 비교하세요.",
+  transit: "연결 주민 12명과 11턴 이후 통근 수요 6을 감당하려면 연결 도로가 최소 6칸 필요합니다(중앙 도로 포함). 길이 늘어도 주택·공원·상점을 놓을 땅이 남는지 확인하고, 14턴 혼잡 0 점검과 최종 서비스 9명 목표를 함께 만족시키세요.",
+};
 try {
   if (record.current) {
     resumeState = replay(record.current.seed, record.current.actions, record.current.scenario, record.current.version);
@@ -86,6 +91,7 @@ function render() {
   $("city-name").textContent = "도시 " + state.seed.slice(0, 18);
   $("mission-title").textContent = scenario.name;
   $("mission-copy").textContent = scenario.subtitle;
+  $("planning-challenge").textContent = planningChallenges[state.scenario];
   $("event-status").textContent = (state.turn >= scenario.event.turn ? "적용 중" : scenario.event.turn + "턴") + " · " + scenario.event.name + ": " + scenario.event.desc;
   $("active-scenario").textContent = "선택 변경은 새 도시에 적용";
   $("timeline").replaceChildren();

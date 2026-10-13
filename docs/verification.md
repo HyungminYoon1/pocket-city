@@ -1,5 +1,19 @@
 # 검증 기록
 
+## 2026-10-13 — 세 임무의 계획 비교 / LOCAL
+
+추가 화면 근거: 아래 QA 폴더의 `changed-guide-320.png`는 펼친 새 과제 부분의 원본 크기 캡처입니다(`capture.cjs`). 줄바꿈·잘림·320px 문서 폭을 확인했습니다. 확인한 격리 브라우저의 콘솔 오류·경고는 네 앱 모두0개입니다.
+
+- 소스: 저장소 목록·깨끗한 시작 상태, architecture.md, README.md, decisions/verification, gitattributes/gitignore/package, HTML/CSS·모든 src, model/ui 시험·승리 fixture, balance/check/serve 전체 확인(VERIFIED). campaign/progress 시험은 목록·전체 실행으로 확인했으며 내용 전수 재감사는 하지 않았습니다(PARTIAL). api-spec.md/requirements.md/AGENTS.md 없음. 부모 루트 목록만 확인(PARTIAL); 형제·갤러리·순위 서버 내용은 NOT_INSPECTED/NOT_MODIFIED.
+- 오류 조사: 재현·수정할 신규 계산 오류는 확인하지 못했습니다. 기존 도로 연결·위기 정산·합법 승리 결과를 유지합니다.
+- 개선: 세 임무별 계획 비교 과제. 8턴까지 기반시설 순서, 10턴 폭염 대비 수요 합산, 주민 12+통근 6을 위한 연결 도로 최소 6칸(중앙 포함)과 남은 토지 확보. UI 변경 YES.
+- 파일: dist/index.html, dist/src/app.js, README.md, docs/decisions.md, docs/verification.md.
+- 최종 로컬: `npm test` 34/34, `npm run check` PASS, `git diff --check` PASS. 기존 승리 fixture 세 개·150회 합법 재생·300개 생성 조건 및 저장 시험 유지. model/core/campaign/storage/progress 변경 없음.
+- 브라우저: 자기 loopback/격리 Playwright Chromium에서 `lesson` 세 승리를 일반 건설 카드/칸 클릭으로 완주: 동네330, 정원326, 통근310점. 정원11턴 폭염·9명 서비스·전력12/10 확인 후 reload→이어하기 예산17 유지. 세 업적 재로딩 보존, 빈 도시20턴 미달 후 업적 보존, 잘못된 코드 거절, 키보드 칸 포커스와 pointerleave 미리보기 유지 확인. 1440×1000/390×844/320×844 중간 도시와 작은 화면 실패 상태 가로 넘침 없음. 관찰한 pageerror0.
+- 캡처: 무시된 `.qa/output/playwright/qa-20261013/`의 `garden-turn11-1440.png`, `garden-turn11-390.png`, `garden-turn11-320.png`, 세 `*-victory.png`, `empty-city-failure-320.png`; desktop/mobile 육안 확인. `qa.cjs`에 UI 재현 흐름. 선택자: `#planning-challenge`, `#scenario`, `#offers button`, `#city button`, `#resume`.
+- 근거: 이 과제의 수요·용량·서비스는 `dist/src/model.js`의 게임 규칙입니다. 주택3채 수요6, 폭염+2, 연결 주민12+통근6, 도로당 용량3을 현재 모델·기존 위기/연결 시험과 세 합법 승리로 대조했습니다. 실제 도시·의료 효과나 모든 코드 승리 가능성을 뜻하지 않습니다.
+- 한계: 실제 터치·다른 엔진·스크린리더·사람 난이도·동일 origin 갤러리 통합은 미검증. REMOTE_CI/LIVE NOT_RUN. 커밋/푸시/배포/다른 에이전트/외부 서비스 추가 없음.
+
 ## 2026-10-09 — 독립 캠페인 업적·갤러리 요약·모바일 정리
 
 ### LOCAL — PASS (이번 작업자)
