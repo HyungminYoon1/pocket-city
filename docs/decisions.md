@@ -1,5 +1,16 @@
 # 결정 기록
 
+## D12 — Edge input/lifecycle guards / 2026-10-13
+
+- Context: systematic test-first audit exposed obsolete or unintended UI events; original failing assertions are in edge-cases-20261013.md.
+- Options: disable all input after render; retain prior board snapshots; check ownership of the actual clicked plot.
+- Decision: Ignore plot callbacks whose element is no longer contained in the current city board.
+- Rationale: prevent a stale/unintended event from changing the current session while retaining normal input and existing pure model rules.
+- Affected files: dist/src/app.js, test/ui.test.js, test/edge.test.js, tools/edge-browser.cjs, docs/edge-cases-20261013.md and verification.md.
+- Data/policy: no schema/key/version/retention/achievement/rule change. No external service, paid change, identity, analytics or storage expansion.
+- Follow-up review: parent reviews integration, existing campaign solutions and actual captures; physical IME/touch and cross-tab races remain unverified. Browser-only fixtures are explicitly labeled; Node regression tests are included in existing CI commands. No commit/push/deploy by this owner.
+
+
 ## D11 — 임무별 계획 비교 / 2026-10-13
 
 - 맥락: 목표 부족량은 보이지만 건설 순서와 위기 전 여유 용량을 비교하는 과제가 부족했습니다.

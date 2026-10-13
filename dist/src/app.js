@@ -124,6 +124,7 @@ function render() {
       }
     }
     b.onclick = event => {
+      if (!$("city").contains(b)) return;
       if (cell.building) preview(i);
       else {
         build(i);

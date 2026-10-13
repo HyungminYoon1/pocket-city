@@ -13,13 +13,14 @@ const [source, html, css] = await Promise.all([
   readFile(new URL("../dist/index.html", import.meta.url), "utf8"),
   readFile(new URL("../dist/styles.css", import.meta.url), "utf8"),
 ]);
+const plans = JSON.parse(await readFile(new URL("./fixtures/victories.json", import.meta.url), "utf8"));
 
 // Minimal DOM double for the actual app callbacks, not browser/layout evidence.
 function memoryStorage() {
   const data = new Map();
   return { data, getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key) };
 }
-function boot(storage = memoryStorage()) {
+function boot(storage = memoryStorage(), confirm = () => true) {
   const document = { activeElement: null };
   class Element {
     constructor() {
@@ -63,7 +64,7 @@ function boot(storage = memoryStorage()) {
     saveRecord: record => storageBoundary.saveRecord(record, storage),
     clearRecord: () => storageBoundary.clearRecord(storage),
     reportCompletion: count => progress.reportCompletion(count, storage),
-    clearProgress: () => progress.clearProgress(storage), confirm: () => true,
+    clearProgress: () => progress.clearProgress(storage), confirm,
     announce: text => { elements.notice.textContent = text; }, tool() {},
   }, { filename: "dist/src/app.js", timeout: 1000 });
   return { elements, document, storage, plot: i => elements.city.children[i], preview: () => elements.preview.textContent };
@@ -80,6 +81,37 @@ test("offer click → plot focus → scroll-related pointerleave retains compute
   plot.leave();
   assert.equal(ui.document.activeElement, plot);
   assert.equal(ui.preview(), settlement);
+});
+
+test("edge: a detached plot click after reset cannot construct in the replacement city", () => {
+  const ui = boot(), old = ui.plot(7);
+  ui.elements["new-city"].onclick();
+  const before = ui.storage.data.get(campaign.RECORD_KEY);
+  old.onclick({ detail: 1 });
+  assert.equal(ui.elements.turn.textContent, "01");
+  assert.equal(ui.storage.data.get(campaign.RECORD_KEY), before);
+  ui.plot(7).onclick({ detail: 0 });
+  assert.equal(ui.elements.turn.textContent, "02");
+  assert.equal(ui.document.activeElement, ui.plot(8));
+});
+
+test("edge: cancelled replacement and erase retain the playing replay and summary", () => {
+  const ui = boot(memoryStorage(), () => false);
+  ui.elements.pass.onclick();
+  const before = ui.storage.data.get(campaign.RECORD_KEY);
+  ui.elements["new-city"].onclick(); ui.elements.clear.onclick();
+  assert.equal(ui.storage.data.get(campaign.RECORD_KEY), before);
+  assert.equal(ui.elements.turn.textContent, "02");
+  assert.equal(ui.storage.data.has(progress.PROGRESS_KEY), false);
+});
+
+test("edge: repeated terminal actions never append completion history or rewrite the summary", () => {
+  const ui = boot();
+  play(ui, plans.foundations);
+  const privateBefore = ui.storage.data.get(campaign.RECORD_KEY), sharedBefore = ui.storage.data.get(progress.PROGRESS_KEY);
+  for (let n = 0; n < 5; n++) { ui.elements.pass.onclick(); ui.plot(7).onclick({ detail: 1 }); }
+  assert.equal(ui.storage.data.get(campaign.RECORD_KEY), privateBefore);
+  assert.equal(ui.storage.data.get(progress.PROGRESS_KEY), sharedBefore);
 });
 test("blur keeps the hovered plot, then leaving both focus and hover clears its preview", () => {
   const ui = boot(), plot = ui.plot(7);
@@ -140,7 +172,6 @@ test("completed-panel buttons have readable default/hover/focus colors and a vis
   assert.ok(contrast(focus.outline.match(/#[0-9a-f]{6}/i)[0], panel.background) >= 3, "focus ring against blue panel");
 });
 
-const plans = JSON.parse(await readFile(new URL("./fixtures/victories.json", import.meta.url), "utf8"));
 function play(ui, plan) {
   for (const move of plan) {
     if (move) { ui.elements.offers.children[move[1]].onclick(); ui.plot(move[0]).onclick({ detail: 1 }); }
